@@ -1,24 +1,43 @@
-use serde::{Serialize, Deserialize};
+use std::env;
+use std::process;
+use unix_ipc::{channel, Bootstrapper, Receiver, Sender};
+use serde::{Deserialize, Serialize};
+
+const ENV_VAR: &str = "PROC_CONNECT_TO";
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Point {
-    x: i32,
-    y: i32,
+pub enum Task {
+    Sum(Vec<i64>, Sender<i64>),
+    Shutdown,
 }
 
 fn main() {
-    let point = Point { x: 1, y: 2 };
-    println!("pre-serialized = {:?}", point);
+    match env::var(ENV_VAR) {
+        Ok(path) => {
+            let receiver = Receiver::<Task>::connect(path).unwrap();
+            loop {
+                match receiver.recv().unwrap() {
+                    Task::Sum(values, tx) => {
+                        tx.send(values.into_iter().sum::<i64>()).unwrap();
+                    }
+                    Task::Shutdown => break,
+                }
+            }
+        }
+        _ => {
+            let bootstrapper = Bootstrapper::new().unwrap();
+            println!("Spawning process A");
+            process::Command::new(env::current_exe().unwrap())
+                .env(ENV_VAR, bootstrapper.path())
+                .spawn()
+                .unwrap();
 
-    // Convert the Point to a JSON string.
-    let serialized = serde_json::to_string(&point).unwrap();
-
-    // Prints serialized = {"x":1,"y":2}
-    println!("serialized = {}", serialized);
-
-    // Convert the JSON string back to a Point.
-    let deserialized: Point = serde_json::from_str(&serialized).unwrap();
-
-    // Prints deserialized = Point { x: 1, y: 2 }
-    println!("deserialized = {:?}", deserialized);
+            let (tx, rx) = channel().unwrap();
+            println!("Sending task to process A");
+            bootstrapper.send(Task::Sum(vec![23, 42], tx)).unwrap();
+            println!("Receiving result from process A");
+            println!("sum: {}", rx.recv().unwrap());
+            bootstrapper.send(Task::Shutdown).unwrap();
+        }
+    }
 }
