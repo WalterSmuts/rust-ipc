@@ -11,7 +11,7 @@ message DiffTask {
 }
 
 message ArithmeticTask {
-	oneof arithmetic_task {
+	oneof subtask {
 		SumTask sum_task = 1;
 		DiffTask diff_task = 2;
 	}

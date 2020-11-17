@@ -2,3 +2,4 @@
 */Cargo.lock
 gen/
 rust-protobuf/src/protos/arithmetic.rs
+*.swp
