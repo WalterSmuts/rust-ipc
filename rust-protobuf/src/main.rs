@@ -49,12 +49,14 @@ fn main() {
 }
 
 fn handleSumTask(task :SumTask) -> ArithmeticResponse {
+    println!("SumTask: {:?}", task);
     let mut response = ArithmeticResponse::new();
     response.set_answer(task.val1 + task.val2);
     return response;
 }
 
 fn handleDiffTask(task :DiffTask) -> ArithmeticResponse {
+    println!("DiffTask: {:?}", task);
     let mut response = ArithmeticResponse::new();
     response.set_answer(task.val1 - task.val2);
     return response;

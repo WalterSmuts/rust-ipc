@@ -3,3 +3,4 @@
 gen/
 rust-protobuf/src/protos/arithmetic.rs
 *.swp
+cpp-build-aritfacts
