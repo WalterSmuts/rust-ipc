@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+message SumTask {
+	int32 val1 = 1;
+	int32 val2 = 2;
+}
+
+message DiffTask {
+	int32 val1 = 1;
+	int32 val2 = 2;
+}
+
+message ArithmeticTask {
+	oneof arithmetic_task {
+		SumTask sum_task = 1;
+		DiffTask diff_task = 2;
+	}
+}
+
+message ArithmeticResponse {
+    int32 answer = 1;
+}
