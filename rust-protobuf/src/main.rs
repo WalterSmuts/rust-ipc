@@ -50,6 +50,16 @@ fn main() {
 fn handle_event(event: &Event, slab: &Slab<UnixDatagram>) {
     println!("Handling event: {:?}", event);
     let socket =  &slab[usize::from(event.token())];
+
+    // Read until attempt fails
+    loop {
+        if !attempt_read(&socket) {
+            break;
+        }
+    }
+}
+
+fn attempt_read(socket: &UnixDatagram) -> bool {
     let mut buff = [0u8;  2048];
     let iov = [IoVec::from_mut_slice(&mut buff[..])];
     if let Ok(msg) = recvmsg(socket.as_raw_fd(), &iov, None, MsgFlags::empty()) {
@@ -60,8 +70,9 @@ fn handle_event(event: &Event, slab: &Slab<UnixDatagram>) {
             ArithmeticTask_oneof_subtask::diff_task(task) => handle_diff_task(task),
         };
         println!("{:?}", response);
+        return true;
     } else {
-        println!("Got weird event");
+        return false;
     }
 }
 
