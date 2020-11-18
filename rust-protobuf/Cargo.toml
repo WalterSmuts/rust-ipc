@@ -11,6 +11,7 @@ protobuf = "2"
 mio = { version = "0.7", features = ["os-poll", "uds"] }
 slab = "0.4"
 nix = "0.17"
+ctrlc = "3.1.7"
 
 [build-dependencies]
 protoc-rust = "2.0"

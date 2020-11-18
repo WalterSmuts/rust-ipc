@@ -17,6 +17,7 @@ use mio::net::UnixDatagram;
 
 use std::path::Path;
 use std::os::unix::io::{AsRawFd};
+use std::fs;
 
 use slab::Slab;
 
@@ -29,6 +30,13 @@ fn main() {
     let my_sock = UnixDatagram::bind(path).unwrap();
     let token = slab.insert(my_sock);
     poll.registry().register(&mut slab[token], Token(token), Interest::READABLE).unwrap();
+
+    // Cleanup file
+    ctrlc::set_handler(move || {
+        println!("received Ctrl+C!");
+        fs::remove_file(path).expect("Error removing file");
+    })
+    .expect("Error setting Ctrl-C handler");
 
     loop {
         println!("Polling...");
