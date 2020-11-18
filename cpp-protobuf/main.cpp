@@ -45,10 +45,15 @@ int main() {
 
 	ssize_t written = write(data_socket, c, size);
 
-	if(written > 0) {
-		std::cout << "Something broke when sending\n";
-		std::cout << "errno: " << errno << "\n";
+	if (written != size) {
+		std::cout << "Something broke when sending" << std::endl;
+		std::cout << "Written: " << written << std::endl;
+		std::cout << "Size: " << size << std::endl;
+		std::cout << "errno: " << errno << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	close(data_socket);
+	exit(EXIT_SUCCESS);
 	return 0;
 }

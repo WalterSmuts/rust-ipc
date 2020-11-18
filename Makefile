@@ -4,6 +4,8 @@ RUST_OUT = $(RUST_DIR)/target/debug
 CPP_DIR = cpp-protobuf
 CPP_OUT = cpp-build-aritfacts
 
+all: $(CPP_OUT)/client $(RUST_OUT)/rust-protobuf
+
 $(CPP_OUT)/client: $(CPP_DIR)/main.cpp $(PB_GEN_CPP)/arithmetic.pb.cc $(PB_GEN_CPP)/arithmetic.pb.h
 	mkdir -p $(CPP_OUT)
 	g++ -I$(PB_GEN_CPP) -o $(CPP_OUT)/client $(CPP_DIR)/main.cpp $(PB_GEN_CPP)/protobuf/arithmetic.pb.cc -lprotobuf

@@ -30,20 +30,23 @@ fn main() {
     let token = slab.insert(my_sock);
     poll.registry().register(&mut slab[token], Token(token), Interest::READABLE).unwrap();
 
-    poll.poll(&mut events, None).unwrap();
     loop {
+        poll.poll(&mut events, None).unwrap();
         for event in &events {
             let socket =  &slab[usize::from(event.token())];
             let mut buff = [0u8;  2048];
             let iov = [IoVec::from_mut_slice(&mut buff[..])];
-            let msg = recvmsg(socket.as_raw_fd(), &iov, None, MsgFlags::empty()).unwrap();
-            let vec = buff[0..msg.bytes].to_vec();
-            let task = parse_from_bytes::<ArithmeticTask>(&vec).unwrap();
-            let response = match task.subtask.unwrap() {
-                ArithmeticTask_oneof_subtask::sum_task(task) => handleSumTask(task),
-                ArithmeticTask_oneof_subtask::diff_task(task) => handleDiffTask(task),
-            };
-            println!("{:?}", response);
+            if let Ok(msg) = recvmsg(socket.as_raw_fd(), &iov, None, MsgFlags::empty()) {
+                let vec = buff[0..msg.bytes].to_vec();
+                let task = parse_from_bytes::<ArithmeticTask>(&vec).unwrap();
+                let response = match task.subtask.unwrap() {
+                    ArithmeticTask_oneof_subtask::sum_task(task) => handleSumTask(task),
+                    ArithmeticTask_oneof_subtask::diff_task(task) => handleDiffTask(task),
+                };
+                println!("{:?}", response);
+            } else {
+                println!("Got weird event");
+            }
         }
     }
 }
