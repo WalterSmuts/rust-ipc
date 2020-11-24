@@ -22,18 +22,24 @@ void sendSumTask(int a, int b, int data_socket) {
 	sumTask->set_val2(b);
 	ArithmeticTask wrapper;
 	wrapper.set_allocated_sum_task(sumTask);
-	size_t size = wrapper.ByteSize();
-	char c[size];
-	wrapper.SerializeToArray(&c, size);
-	ssize_t written = write(data_socket, c, size);
 
-	if (written != size) {
+	std::cout << "Sending question:\n" << wrapper.DebugString();
+	bool worked = wrapper.SerializeToFileDescriptor(data_socket);
+	if (!worked) {
 		std::cout << "Something broke when sending" << std::endl;
-		std::cout << "Written: " << written << std::endl;
-		std::cout << "Size: " << size << std::endl;
 		std::cout << "errno: " << errno << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	ArithmeticResponse response;
+	worked = response.ParseFromFileDescriptor(data_socket);
+	// Not sure why this returns false :/
+	//if (!worked) {
+	//      std::cout << "Something broke when receiving" << std::endl;
+	//      std::cout << "errno: " << errno << std::endl;
+	//      exit(EXIT_FAILURE);
+	//}
+	std::cout << "Received response: \n" << response.DebugString() << std::endl;
 }
 
 int main() {
@@ -47,17 +53,33 @@ int main() {
 		exit(EXIT_FAILURE);
 	}
 
-	// Connect socket to socket address
+	/* Bind socket to socket name. */
+	struct sockaddr_un name;
+	name.sun_family = AF_UNIX;
+	strncpy(name.sun_path, "/tmp/rust-ipc.client", sizeof(name.sun_path) - 1);
+	int ret = bind(data_socket, (const struct sockaddr *) &name,
+	           sizeof(struct sockaddr_un));
+	if (ret == -1) {
+	    perror("bind");
+	    exit(EXIT_FAILURE);
+	}
+
+	// Connect socket to socket address (server read; client write)
 	struct sockaddr_un addr;
 	addr.sun_family = AF_UNIX;
-	strncpy(addr.sun_path, "/tmp/rust-ipc.sock", sizeof(addr.sun_path) - 1);
-	int ret = connect(data_socket, (const struct sockaddr *) &addr, sizeof(struct sockaddr_un));
-	if (ret == -1) {
+	strncpy(addr.sun_path, "/tmp/rust-ipc.server", sizeof(addr.sun_path) - 1);
+	ret = -1;
+	for (;;) {
+		ret = connect(data_socket, (const struct sockaddr *) &addr, sizeof(struct sockaddr_un));
+		if (!ret) {
+			break;
+		}
 		fprintf(stderr, "The server is down.\n");
-		exit(EXIT_FAILURE);
 	}
-	for (int i=0; i < 200; i++) sendSumTask(1, i+1, data_socket);
+
+	for (int i=0; i < 10000; i++) sendSumTask(1, i+1, data_socket);
 
 	close(data_socket);
+	unlink("/tmp/rust-ipc.client");
 	return 0;
 }

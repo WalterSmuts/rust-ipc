@@ -6,17 +6,13 @@ use protos::arithmetic::ArithmeticResponse;
 use protos::arithmetic::ArithmeticTask_oneof_subtask;
 
 use protobuf::parse_from_bytes;
-
-use nix::sys::socket::recvmsg;
-use nix::sys::socket::MsgFlags;
-use nix::sys::uio::IoVec;
+use protobuf::Message;
 
 use mio::{Poll, Events,Interest, Token};
 use mio::event::Event;
 use mio::net::UnixDatagram;
 
 use std::path::Path;
-use std::os::unix::io::{AsRawFd};
 use std::fs;
 
 use slab::Slab;
@@ -25,10 +21,12 @@ fn main() {
     let mut poll = Poll::new().unwrap();
     let mut events = Events::with_capacity(1024);
     let mut slab = Slab::new();
+    let path = Path::new("/tmp/rust-ipc.server");
 
-    let path = Path::new("/tmp/rust-ipc.sock");
-    let my_sock = UnixDatagram::bind(path).unwrap();
-    let token = slab.insert(my_sock);
+    let socket = UnixDatagram::bind(path).unwrap();
+
+    // Store socket in slab
+    let token = slab.insert(socket);
     poll.registry().register(&mut slab[token], Token(token), Interest::READABLE).unwrap();
 
     // Cleanup file
@@ -48,7 +46,6 @@ fn main() {
 }
 
 fn handle_event(event: &Event, slab: &Slab<UnixDatagram>) {
-    println!("Handling event: {:?}", event);
     let socket =  &slab[usize::from(event.token())];
 
     // Read until attempt fails
@@ -60,16 +57,24 @@ fn handle_event(event: &Event, slab: &Slab<UnixDatagram>) {
 }
 
 fn attempt_read(socket: &UnixDatagram) -> bool {
-    let mut buff = [0u8;  2048];
-    let iov = [IoVec::from_mut_slice(&mut buff[..])];
-    if let Ok(msg) = recvmsg(socket.as_raw_fd(), &iov, None, MsgFlags::empty()) {
-        let vec = buff[0..msg.bytes].to_vec();
+    let mut buff = [0u8; 1024];
+    if let Ok((size, addr)) = socket.recv_from(&mut buff) {
+        let vec = buff[0..size].to_vec();
         let task = parse_from_bytes::<ArithmeticTask>(&vec).unwrap();
         let response = match task.subtask.unwrap() {
             ArithmeticTask_oneof_subtask::sum_task(task) => handle_sum_task(task),
             ArithmeticTask_oneof_subtask::diff_task(task) => handle_diff_task(task),
         };
+
         println!("{:?}", response);
+        let mut data = response.write_to_bytes().unwrap();
+        data.append(&mut[0u8].to_vec()); // Append a null to indicate end of protobuf (REALLY???)
+        // Write until success (mio doesnt seem to do blocking calls)
+        loop {
+            if socket.send_to(&data, &addr.as_pathname().unwrap()).is_ok() {
+                break;
+            }
+        }
         return true;
     } else {
         return false;
