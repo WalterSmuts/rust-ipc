@@ -15,6 +15,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#define BUFFER_SIZE 1024
+
 void sendSumTask(int a, int b, int data_socket) {
 	// Setup task
 	SumTask *sumTask = new SumTask();
@@ -31,14 +33,16 @@ void sendSumTask(int a, int b, int data_socket) {
 		exit(EXIT_FAILURE);
 	}
 
+
 	ArithmeticResponse response;
-	worked = response.ParseFromFileDescriptor(data_socket);
-	// Not sure why this returns false :/
-	//if (!worked) {
-	//      std::cout << "Something broke when receiving" << std::endl;
-	//      std::cout << "errno: " << errno << std::endl;
-	//      exit(EXIT_FAILURE);
-	//}
+	char buffer [BUFFER_SIZE];
+	int size = read(data_socket, &buffer, size);
+	worked = response.ParseFromArray(&buffer, size);
+	if (!worked) {
+	      std::cout << "Something broke when receiving" << std::endl;
+	      std::cout << "errno: " << errno << std::endl;
+	      exit(EXIT_FAILURE);
+	}
 	std::cout << "Received response: \n" << response.DebugString() << std::endl;
 }
 

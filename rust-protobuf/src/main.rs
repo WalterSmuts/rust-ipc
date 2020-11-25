@@ -67,8 +67,7 @@ fn attempt_read(socket: &UnixDatagram) -> bool {
         };
 
         println!("{:?}", response);
-        let mut data = response.write_to_bytes().unwrap();
-        data.append(&mut[0u8].to_vec()); // Append a null to indicate end of protobuf (REALLY???)
+        let data = response.write_to_bytes().unwrap();
         socket.send_to(&data, &addr.as_pathname().unwrap()).unwrap();
         return true;
     } else {
