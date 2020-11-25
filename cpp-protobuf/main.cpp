@@ -19,11 +19,13 @@
 
 void sendSumTask(int a, int b, int data_socket) {
 	// Setup task
-	SumTask *sumTask = new SumTask();
-	sumTask->set_val1(a);
-	sumTask->set_val2(b);
+	SumTask sumTask;
 	ArithmeticTask wrapper;
-	wrapper.set_allocated_sum_task(sumTask);
+	ArithmeticResponse response;
+	char buffer [BUFFER_SIZE];
+	sumTask.set_val1(a);
+	sumTask.set_val2(b);
+	wrapper.set_allocated_sum_task(&sumTask);
 
 	std::cout << "Sending question:\n" << wrapper.DebugString();
 	bool worked = wrapper.SerializeToFileDescriptor(data_socket);
@@ -34,9 +36,7 @@ void sendSumTask(int a, int b, int data_socket) {
 	}
 
 
-	ArithmeticResponse response;
-	char buffer [BUFFER_SIZE];
-	int size = read(data_socket, &buffer, size);
+	int size = read(data_socket, &buffer, BUFFER_SIZE);
 	worked = response.ParseFromArray(&buffer, size);
 	if (!worked) {
 	      std::cout << "Something broke when receiving" << std::endl;
