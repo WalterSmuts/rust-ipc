@@ -69,12 +69,7 @@ fn attempt_read(socket: &UnixDatagram) -> bool {
         println!("{:?}", response);
         let mut data = response.write_to_bytes().unwrap();
         data.append(&mut[0u8].to_vec()); // Append a null to indicate end of protobuf (REALLY???)
-        // Write until success (mio doesnt seem to do blocking calls)
-        loop {
-            if socket.send_to(&data, &addr.as_pathname().unwrap()).is_ok() {
-                break;
-            }
-        }
+        socket.send_to(&data, &addr.as_pathname().unwrap()).unwrap();
         return true;
     } else {
         return false;
