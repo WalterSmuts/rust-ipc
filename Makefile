@@ -11,7 +11,7 @@ $(CPP_OUT)/client: $(CPP_DIR)/main.cpp $(PB_GEN_CPP)/protobuf/arithmetic.pb.cc $
 	g++ -I$(PB_GEN_CPP) -o $(CPP_OUT)/client $(CPP_DIR)/main.cpp $(PB_GEN_CPP)/protobuf/arithmetic.pb.cc -lprotobuf
 
 $(RUST_OUT)/rust-protobuf: $(RUST_DIR)/src/main.rs
-	cd rust-protobuf; cargo +nightly build
+	cd rust-protobuf; cargo +stable build
 
 $(PB_GEN_CPP)/protobuf/arithmetic.pb.cc $(PB_GEN_CPP)/protobuf/arithmetic.pb.h: protobuf/arithmetic.proto
 	mkdir -p $(PB_GEN_CPP)
