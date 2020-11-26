@@ -18,6 +18,7 @@
 #include <chrono>
 
 #define BUFFER_SIZE 1024
+#define SUM_TASKS_NUM 800000
 
 void sendSumTask(int a, int b, int data_socket) {
 	// Setup task
@@ -87,12 +88,15 @@ int main() {
 	}
 
 	auto start = std::chrono::system_clock::now();
-	for (int i=0; i < 300000; i++) sendSumTask(1, i+1, data_socket);
+	for (int i=0; i < SUM_TASKS_NUM; i++) sendSumTask(1, i+1, data_socket);
 	auto end = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds = end-start;
 	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
 	std::cout << "Elapsed time: " << elapsed_seconds.count() << "s\n";
+	std::cout << "We're dealing with tasks sequentially at: "
+		<< SUM_TASKS_NUM / elapsed_seconds.count()
+		<< " tasks per second\n";
 
 	close(data_socket);
 	unlink("/tmp/rust-ipc.client");
