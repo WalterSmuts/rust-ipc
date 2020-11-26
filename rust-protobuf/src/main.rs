@@ -38,7 +38,6 @@ fn main() {
     .expect("Error setting Ctrl-C handler");
 
     loop {
-        println!("Polling...");
         poll.poll(&mut events, None).unwrap();
         for event in &events {
             handle_event(&event, &slab);
@@ -67,9 +66,13 @@ fn attempt_read(socket: &UnixDatagram) -> bool {
             ArithmeticTask_oneof_subtask::diff_task(task) => handle_diff_task(task),
         };
 
-        println!("{:?}", response);
         let data = response.write_to_bytes().unwrap();
-        socket.send_to(&data, &addr.as_pathname().unwrap()).unwrap();
+        loop {
+            if socket.send_to(&data, &addr.as_pathname().unwrap()).is_ok() {
+                break;
+            }
+            println!("Weird, send seems to have blocked");
+        }
         return true;
     } else {
         return false;
@@ -77,14 +80,12 @@ fn attempt_read(socket: &UnixDatagram) -> bool {
 }
 
 fn handle_sum_task(task: SumTask) -> ArithmeticResponse {
-    println!("SumTask: {:?}", task);
     let mut response = ArithmeticResponse::new();
     response.set_answer(task.val1 + task.val2);
     return response;
 }
 
 fn handle_diff_task(task: DiffTask) -> ArithmeticResponse {
-    println!("DiffTask: {:?}", task);
     let mut response = ArithmeticResponse::new();
     response.set_answer(task.val1 - task.val2);
     return response;

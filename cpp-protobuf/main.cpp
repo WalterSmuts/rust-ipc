@@ -15,6 +15,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <chrono>
+
 #define BUFFER_SIZE 1024
 
 void sendSumTask(int a, int b, int data_socket) {
@@ -24,25 +26,27 @@ void sendSumTask(int a, int b, int data_socket) {
 	sumTask->set_val2(b);
 	ArithmeticTask wrapper;
 	wrapper.set_allocated_sum_task(sumTask);
+	struct sockaddr_un addr;
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path, "/tmp/rust-ipc.server", sizeof(addr.sun_path) - 1);
+	char buffer [BUFFER_SIZE];
 
-	std::cout << "Sending question:\n" << wrapper.DebugString();
-	bool worked = wrapper.SerializeToFileDescriptor(data_socket);
-	if (!worked) {
+	bool worked = wrapper.SerializeToArray(&buffer, wrapper.ByteSize());
+	int size = sendto(data_socket, &buffer, wrapper.ByteSize(), 0, (struct sockaddr *) &addr, sizeof(struct sockaddr_un));
+	if (size < 0) {
 		std::cout << "Something broke when sending" << std::endl;
 		std::cout << "errno: " << errno << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	ArithmeticResponse response;
-	char buffer [BUFFER_SIZE];
-	int size = read(data_socket, &buffer, size);
+	size = read(data_socket, &buffer, size);
 	worked = response.ParseFromArray(&buffer, size);
 	if (!worked) {
 	      std::cout << "Something broke when receiving" << std::endl;
 	      std::cout << "errno: " << errno << std::endl;
 	      exit(EXIT_FAILURE);
 	}
-	std::cout << "Received response: \n" << response.DebugString() << std::endl;
 }
 
 int main() {
@@ -82,7 +86,13 @@ int main() {
 		fprintf(stderr, "The server is down.\n");
 	}
 
-	for (int i=0; i < 10000; i++) sendSumTask(1, i+1, data_socket);
+	auto start = std::chrono::system_clock::now();
+	for (int i=0; i < 300000; i++) sendSumTask(1, i+1, data_socket);
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds = end-start;
+	std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+	std::cout << "Elapsed time: " << elapsed_seconds.count() << "s\n";
 
 	close(data_socket);
 	unlink("/tmp/rust-ipc.client");
