@@ -22,6 +22,7 @@ fn main() {
     let mut events = Events::with_capacity(1024);
     let mut slab = Slab::new();
     let path = Path::new("/tmp/rust-ipc.server");
+    fs::remove_file(path);
 
     let socket = UnixDatagram::bind(path).unwrap();
 

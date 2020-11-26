@@ -33,7 +33,6 @@ void sendSumTask(int a, int b, int data_socket) {
 		exit(EXIT_FAILURE);
 	}
 
-
 	ArithmeticResponse response;
 	char buffer [BUFFER_SIZE];
 	int size = read(data_socket, &buffer, size);
@@ -47,6 +46,8 @@ void sendSumTask(int a, int b, int data_socket) {
 }
 
 int main() {
+	// Remove file at start if the previous run failed
+	unlink("/tmp/rust-ipc.client");
 	// Verify that the version of the library that we linked against is
 	// compatible with the version of the headers we compiled against.
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
